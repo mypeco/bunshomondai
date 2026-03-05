@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マイクラ＆サバイバル 算数クエスト</title>
+    <!-- UDフォントの読み込み -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 紙吹雪ライブラリ -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        /* 全体にUDフォントを適用 */
+        body { 
+            font-family: 'BIZ UDPGothic', 'UD デジタル 教科書体 NP-R', 'Hiragino Kaku Gothic ProN', sans-serif; 
+            letter-spacing: 0.05em;
+            line-height: 1.8; 
+        }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* 蛍光ペン風マーカー装飾 */
+        .marker-yellow {
+            background: linear-gradient(transparent 50%, rgba(253, 224, 71, 0.75) 50%);
+            padding: 0 0.1em;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="bg-emerald-50 text-gray-800 min-h-screen flex items-center justify-center p-4">
+
+    <div id="app" class="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden min-h-[550px] flex flex-col">
+        <!-- コンテンツはJSでここに描画されます -->
+    </div>
+
+<script>
+// --- クイズデータ ---
+const dataBasic = [
+  { question: "【マインクラフト】家の壁を作るのに、最初はブロックを15個置きました。そのあと、さらに12個追加して置きました。全部で何個のブロックを置きましたか？", options: [{ text: "27個", isCorrect: true, rationale: "15と12を足すと27になります。位ごとに計算するとスムーズです。" }, { text: "25個", isCorrect: false, rationale: "15に10を足すと25ですが、さらに2を足す必要があります。" }, { text: "30個", isCorrect: false, rationale: "15の2倍は30ですが、追加したのは12個です。" }, { text: "22個", isCorrect: false, rationale: "15に12を足す計算で、十の位の計算ミスが考えられます。" }] },
+  { question: "【サバイバル】ジオたちが森で木の実を30個見つけました。みんなで12個食べたとき、残りは何個になりますか？", options: [{ text: "18個", isCorrect: true, rationale: "30から12を引くと18になります。10を引いてから2を引くと計算しやすいです。" }, { text: "28個", isCorrect: false, rationale: "30から2を引いただけの状態です。" }, { text: "22個", isCorrect: false, rationale: "引き算のときに、十の位から借りてくる計算を間違えています。" }, { text: "15個", isCorrect: false, rationale: "30の半分は15ですが、食べたのは12個です。" }] },
+  { question: "【マインクラフト】石炭1個でたいまつが4本作れます。石炭を5個使うと、たいまつは全部で何本作れますか？", options: [{ text: "20本", isCorrect: true, rationale: "4本ずつのグループが5つあるので、4×5で20になります。" }, { text: "9本", isCorrect: false, rationale: "4と5を足してしまっています。" }, { text: "25本", isCorrect: false, rationale: "5×5で計算してしまっている可能性があります。" }, { text: "15本", isCorrect: false, rationale: "計算ミス、または3×5で計算している可能性があります。" }] },
+  { question: "【サバイバル】4人のメンバーが、それぞれ水筒に2リットルずつ水を持っています。全員合わせると何リットルになりますか？", options: [{ text: "8リットル", isCorrect: true, rationale: "2リットルが4人分なので、2×4で8になります。" }, { text: "6リットル", isCorrect: false, rationale: "2と4を足してしまっています。" }, { text: "4リットル", isCorrect: false, rationale: "人数と同じ数字になっていますが、1人2リットル持っています。" }, { text: "10リットル", isCorrect: false, rationale: "2×5、または計算ミスが考えられます。" }] },
+  { question: "【マインクラフト】鉄のインゴットを50個持っていました。チェストプレートを作るのに8個使いました。残りは何個ですか？", options: [{ text: "42個", isCorrect: true, rationale: "50から8を引くと42になります。" }, { text: "48個", isCorrect: false, rationale: "50から2を引いた、または十の位がそのままになっています。" }, { text: "58個", isCorrect: false, rationale: "使ったのに足し算をしてしまっています。" }, { text: "40個", isCorrect: false, rationale: "10を引いてしまっています。" }] },
+  { question: "【サバイバル】恐竜から逃げるために、最初は40メートル走りました。そのあと、さらに30メートル走りました。合計で何メートル走りましたか？", options: [{ text: "70メートル", isCorrect: true, rationale: "40と30を足すと70になります。" }, { text: "10メートル", isCorrect: false, rationale: "足し算すべきところを、引き算してしまっています。" }, { text: "80メートル", isCorrect: false, rationale: "10多く計算してしまっています。" }, { text: "100メートル", isCorrect: false, rationale: "キリの良い数字ですが、計算結果とは異なります。" }] },
+  { question: "【マインクラフト】パンを12個持っています。3人のプレイヤーで同じ数ずつ分けると、1人何個になりますか？", options: [{ text: "4個", isCorrect: true, rationale: "12を3で割ると4になります。3×4=12の関係です。" }, { text: "3個", isCorrect: false, rationale: "12を4で割ったときの数です。" }, { text: "6個", isCorrect: false, rationale: "12を2で割ったときの数です。" }, { text: "5個", isCorrect: false, rationale: "あまりが出てしまう計算です。" }] },
+  { question: "【サバイバル】ピピは貝殻を18個、ケイは貝殻を9個集めました。ピピはケイより何個多く集めましたか？", options: [{ text: "9個", isCorrect: true, rationale: "18から9を引くと9になります。9の2倍が18であることを利用できます。" }, { text: "27個", isCorrect: false, rationale: "違いを求めるのに足し算をしてしまっています。" }, { text: "10個", isCorrect: false, rationale: "計算ミス、または近い数字を答えています。" }, { text: "8個", isCorrect: false, rationale: "18の「8」に引きずられたミスと考えられます。" }] },
+  { question: "【マインクラフト】木のフェンスを1つ作るのに、棒が4本必要です。棒を24本持っているとき、フェンスはいくつ作れますか？", options: [{ text: "6個", isCorrect: true, rationale: "24を4で割ると6になります。" }, { text: "4個", isCorrect: false, rationale: "必要な棒の数と同じ数字になっています。" }, { text: "8個", isCorrect: false, rationale: "24を3で割ったときの数です。" }, { text: "10個", isCorrect: false, rationale: "計算結果より大きくなっています。" }] },
+  { question: "【サバイバル】酸素ボンベの残りが60分分あります。45分間使ったとき、残りは何分ですか？", options: [{ text: "15分", isCorrect: true, rationale: "60から45を引くと15になります。" }, { text: "25分", isCorrect: false, rationale: "引き算の計算ミスです。" }, { text: "20分", isCorrect: false, rationale: "おおよその計算ですが、正確ではありません。" }, { text: "5分", isCorrect: false, rationale: "一の位だけを引いてしまった可能性があります。" }] },
+  { question: "【マインクラフト】畑に小麦を植えます。1列に6個ずつ、それを3列作りました。小麦は全部で何個植えましたか？", options: [{ text: "18個", isCorrect: true, rationale: "6×3で18になります。" }, { text: "9個", isCorrect: false, rationale: "6と3を足してしまっています。" }, { text: "24個", isCorrect: false, rationale: "6×4で計算してしまっています。" }, { text: "12個", isCorrect: false, rationale: "6×2で計算してしまっています。" }] },
+  { question: "【サバイバル】宝箱が2つあります。1つの箱には金貨が10枚、もう1つの箱には金貨が15枚入っています。全部で何枚ですか？", options: [{ text: "25枚", isCorrect: true, rationale: "10と15を足すと25になります。" }, { text: "5枚", isCorrect: false, rationale: "違いを求める引き算をしてしまっています。" }, { text: "20枚", isCorrect: false, rationale: "10が2つ分と計算してしまっています。" }, { text: "30枚", isCorrect: false, rationale: "15が2つ分と計算してしまっています。" }] },
+  { question: "【マインクラフト】矢を20本持っています。スケルトンを倒すのに7本使いました。残りは何本ですか？", options: [{ text: "13本", isCorrect: true, rationale: "20から7を引くと13になります。" }, { text: "17本", isCorrect: false, rationale: "10から7を引いた3を足し忘れています。" }, { text: "27本", isCorrect: false, rationale: "使ったのに足し算をしています。" }, { text: "14本", isCorrect: false, rationale: "計算ミスです。" }] },
+  { question: "【サバイバル】1日に3回、決まった時間に気温を測ります。5日間で合計何回測ることになりますか？", options: [{ text: "15回", isCorrect: true, rationale: "3回×5日で15回になります。" }, { text: "8回", isCorrect: false, rationale: "3と5を足してしまっています。" }, { text: "12回", isCorrect: false, rationale: "3×4で計算してしまっています。" }, { text: "20回", isCorrect: false, rationale: "4×5などで計算してしまった可能性があります。" }] },
+  { question: "【マインクラフト】村人と取引します。エメラルド1個で紙が20枚もらえます。エメラルドを3個渡すと、紙は何枚もらえますか？", options: [{ text: "60枚", isCorrect: true, rationale: "20×3で60になります。" }, { text: "23枚", isCorrect: false, rationale: "20と3を足してしまっています。" }, { text: "40枚", isCorrect: false, rationale: "20×2で計算してしまっています。" }, { text: "50枚", isCorrect: false, rationale: "20×2.5のような、あやふやな計算です。" }] },
+  { question: "【サバイバル】イカダを作るのに、丸太が16本必要です。今は10本持っています。あと何本足りませんか？", options: [{ text: "6本", isCorrect: true, rationale: "16から10を引くと6になります。" }, { text: "26本", isCorrect: false, rationale: "足りない分を出すのに足し算をしています。" }, { text: "10本", isCorrect: false, rationale: "持っている数と同じになっています。" }, { text: "5本", isCorrect: false, rationale: "計算ミスです。" }] },
+  { question: "【マインクラフト】羊の毛を刈ります。白い羊が8頭、黒い羊が7頭います。全部で何頭いますか？", options: [{ text: "15頭", isCorrect: true, rationale: "8と7を足すと15になります。" }, { text: "14頭", isCorrect: false, rationale: "7×2、または計算ミスです。" }, { text: "16頭", isCorrect: false, rationale: "8×2、または計算ミスです。" }, { text: "13頭", isCorrect: false, rationale: "計算ミスです。" }] },
+  { question: "【サバイバル】ジャングルの道を80メートル歩く予定です。もう70メートル歩きました。残りはあと何メートルですか？", options: [{ text: "10メートル", isCorrect: true, rationale: "80から70を引くと10になります。" }, { text: "20メートル", isCorrect: false, rationale: "10多く引いてしまっているか、計算ミスです。" }, { text: "150メートル", isCorrect: false, rationale: "残りを出すのに足し算をしています。" }, { text: "30メートル", isCorrect: false, rationale: "計算ミスです。" }] },
+  { question: "【マインクラフト】リンゴを18個見つけました。2個ずつ袋に入れると、袋はいくつ必要ですか？", options: [{ text: "9個", isCorrect: true, rationale: "18を2で割ると9になります。" }, { text: "8個", isCorrect: false, rationale: "18を2で割る計算ミス、または16÷2の結果です。" }, { text: "10個", isCorrect: false, rationale: "20÷2の結果、または計算ミスです。" }, { text: "7個", isCorrect: false, rationale: "計算ミスです。" }] },
+  { question: "【サバイバル】火をおこすのに5分かかります。3回火をおこすと、合計で何分かかりますか？", options: [{ text: "15分", isCorrect: true, rationale: "5×3で15になります。" }, { text: "8分", isCorrect: false, rationale: "5と3を足してしまっています。" }, { text: "10分", isCorrect: false, rationale: "5×2、または計算ミスです。" }, { text: "20分", isCorrect: false, rationale: "5×4、または計算ミスです。" }] }
+];
+
+const dataCritical = [
+  { question: "【マインクラフト】13個のパンを持っています。1つのチェストに3個ずつパンを入れると、チェストに入りきらないパンは何個になりますか？", options: [{ text: "1個", isCorrect: true, rationale: "13÷3=4あまり1となり、残った1個が入りきらない分になります。" }, { text: "4個", isCorrect: false, rationale: "これは「チェストの数」を答えてしまっています。聞かれているのは「パンの数」です。" }, { text: "3個", isCorrect: false, rationale: "1つのチェストに入る数と同じですが、計算結果とは異なります。" }, { text: "0個", isCorrect: false, rationale: "割り切れる計算ではありません。あまりに注目しましょう。" }] },
+  { question: "【サバイバル】18人が川を渡ろうとしています。ボートには一度に4人までしか乗れません。全員が渡るには、最低でも何回ボートを動かす必要がありますか？", options: [{ text: "5回", isCorrect: true, rationale: "18÷4=4あまり2。4回では2人が残ってしまうので、もう1回動かす必要があります。" }, { text: "4回", isCorrect: false, rationale: "これだと16人しか渡れず、2人が岸に取り残されてしまいます。" }, { text: "18回", isCorrect: false, rationale: "1人ずつ運ぶなら18回ですが、4人まで乗れるのでもっと少なく済みます。" }, { text: "2回", isCorrect: false, rationale: "4×2=8人しか渡れないため、人数が足りません。" }] },
+  { question: "【マインクラフト】たいくんは棒を20本持っています。ツルハシを1つ作るのに棒が2本、鉄が3個必要です。棒を全部使うと、ツルハシは最大で何個作れますか？（鉄はたくさんあるとします）", options: [{ text: "10個", isCorrect: true, rationale: "棒20本を、ツルハシ1個に必要な2本で割ると10個になります。" }, { text: "20個", isCorrect: false, rationale: "棒の数と同じですが、1つ作るのに2本使うので数は減ります。" }, { text: "3個", isCorrect: false, rationale: "ツルハシに必要な「鉄の数」と混同してしまっている可能性があります。" }, { text: "5個", isCorrect: false, rationale: "20÷4など、別の計算をしてしまっている可能性があります。" }] },
+  { question: "【サバイバル】ジオは1200メートルの山道を歩きます。すでに800メートル歩きました。残りは何メートルですか？", options: [{ text: "400メートル", isCorrect: true, rationale: "1200から800を引くと400になります。" }, { text: "2000メートル", isCorrect: false, rationale: "「残り」を求めるのに、足し算をしてしまっています。" }, { text: "800メートル", isCorrect: false, rationale: "すでに歩いた距離と同じになってしまっています。" }, { text: "200メートル", isCorrect: false, rationale: "計算ミス、または桁を間違えて引いている可能性があります。" }] },
+  { question: "【マインクラフト】オオカミをなつかせるのに、平均で3個の骨が必要です。骨を10個持っているとき、最大で何匹のオオカミをなつかせることができると考えられますか？", options: [{ text: "3匹", isCorrect: true, rationale: "10÷3=3あまり1。3匹までは確実になつかせることができますが、4匹目には足りません。" }, { text: "10匹", isCorrect: false, rationale: "骨1個で1匹なつくと勘違いしている可能性があります。" }, { text: "4匹", isCorrect: false, rationale: "骨が10個だと、4匹目になつかせるための骨が1個足りません。" }, { text: "1匹", isCorrect: false, rationale: "もっとたくさんのオオカミをなつかせることが可能です。" }] },
+  { question: "【サバイバル】仲間へ合図を送るために、4分おきにのろしを上げます。1回目ののろしを上げてから、3回目ののろしを上げるのは、何分後になりますか？", options: [{ text: "8分後", isCorrect: true, rationale: "1回目から2回目で4分、2回目から3回目で4分なので、合計8分後です。" }, { text: "12分後", isCorrect: false, rationale: "4×3=12と計算しがちですが、最初の1回目は「0分後」なので間隔は2回分です。" }, { text: "4分後", isCorrect: false, rationale: "これは2回目ののろしを上げる時間です。" }, { text: "7分後", isCorrect: false, rationale: "4と3を足してしまっている可能性があります。" }] },
+  { question: "【マインクラフト】1つのスタックは最大64個です。石のブロックを70個持っているとき、スタック数はどうなりますか？", options: [{ text: "1スタックと6個", isCorrect: true, rationale: "70から64を引くと6余るので、1スタック（64個）とあまりの6個になります。" }, { text: "1スタックと10個", isCorrect: false, rationale: "70という数字から、10個余ると勘違いしている可能性があります。" }, { text: "2スタック", isCorrect: false, rationale: "数は2つに分かれますが、2つ目は64個に満たないので「2スタック」とは呼びません。" }, { text: "70スタック", isCorrect: false, rationale: "個数とスタック数を混同してしまっています。" }] },
+  { question: "【サバイバル】長さ10メートルのまっすぐな橋を作ります。2メートルおきに橋を支える柱を立てる場合、柱は全部で何本必要ですか？（橋の両端にも立てます）", options: [{ text: "6本", isCorrect: true, rationale: "10÷2=5ですが、最初の端っこ（0m地点）にも立てるので、5+1=6本になります。" }, { text: "5本", isCorrect: false, rationale: "10÷2の計算結果ですが、これだと片方の端に柱が足りなくなります。" }, { text: "4本", isCorrect: false, rationale: "間隔の数よりも少なくなってしまっています。" }, { text: "10本", isCorrect: false, rationale: "橋の長さと同じ数字ですが、2メートルおきなのでもっと少なくて済みます。" }] },
+  { question: "【マインクラフト】TNTの爆発に巻き込まれない距離は5ブロック以上です。今、TNTから3ブロックの場所にいます。あと何ブロック以上離れれば安全ですか？", options: [{ text: "2ブロック以上", isCorrect: true, rationale: "安全な5ブロックから今の3ブロックを引くと、あと2ブロック必要だとわかります。" }, { text: "5ブロック以上", isCorrect: false, rationale: "これは合計の安全距離です。すでに3ブロック離れていることを忘れています。" }, { text: "8ブロック以上", isCorrect: false, rationale: "必要以上に離れすぎています。" }, { text: "3ブロック以上", isCorrect: false, rationale: "今の距離と同じになってしまっています。" }] },
+  { question: "【サバイバル】食料のために魚を14匹釣りました。ジオ、ピピ、ケイの3人で同じ数ずつ分けると、あまりの魚は何匹になりますか？", options: [{ text: "2匹", isCorrect: true, rationale: "14÷3=4あまり2。同じ数ずつ分けると、最後に2匹余ります。" }, { text: "4匹", isCorrect: false, rationale: "これは「1人がもらえる魚の数」を答えてしまっています。" }, { text: "1匹", isCorrect: false, rationale: "計算ミス、または15÷3と間違えている可能性があります。" }, { text: "0匹", isCorrect: false, rationale: "3で割り切れる数ではありません。" }] },
+  { question: "【マインクラフト】高さ15ブロックの塔を作ります。一度に4ブロック分だけ高く積むことができます。何回積めば、15ブロック以上の高さになりますか？", options: [{ text: "4回", isCorrect: true, rationale: "4×3=12では足りませんが、4×4=16なら15ブロックを超えます。" }, { text: "3回", isCorrect: false, rationale: "4×3=12なので、あと3ブロック足りません。" }, { text: "15回", isCorrect: false, rationale: "1回に1ブロックしか積まない場合の回数です。" }, { text: "5回", isCorrect: false, rationale: "4回で十分目標の高さに届きます。" }] },
+  { question: "【サバイバル】懐中電灯の電池が90分持ちます。すでに1時間使いました。残りはあと何分使えますか？", options: [{ text: "30分", isCorrect: true, rationale: "1時間は60分なので、90から60を引くと30になります。" }, { text: "89分", isCorrect: false, rationale: "「1時間」を「1分」と勘違いして引いてしまった可能性があります。" }, { text: "60分", isCorrect: false, rationale: "使った時間の長さをそのまま答えてしまっています。" }, { text: "10分", isCorrect: false, rationale: "計算ミス、または90から80を引いてしまった可能性があります。" }] },
+  { question: "【マインクラフト】村人と取引します。エメラルド1個で矢が4本もらえます。矢を22本以上欲しいとき、エメラルドは最低何個必要ですか？", options: [{ text: "6個", isCorrect: true, rationale: "4×5=20では足りないので、もう1個エメラルドを使って4×6=24本にする必要があります。" }, { text: "5個", isCorrect: false, rationale: "4×5=20本にしかならず、目標の22本に届きません。" }, { text: "22個", isCorrect: false, rationale: "エメラルド1個で矢が1本もらえる場合の数です。" }, { text: "4個", isCorrect: false, rationale: "4×4=16本なので、かなり足りません。" }] },
+  { question: "【サバイバル】地図の縮尺で、1cmが100メートルを表しています。地図上で4.5cm離れている場所は、実際には何メートルですか？", options: [{ text: "450メートル", isCorrect: true, rationale: "100×4.5、つまり100が4つと半分なので、400+50=450になります。" }, { text: "45メートル", isCorrect: false, rationale: "10倍しかしていません。100倍する必要があります。" }, { text: "400メートル", isCorrect: false, rationale: "0.5cm分の50メートルを計算に入れ忘れています。" }, { text: "104.5メートル", isCorrect: false, rationale: "100と4.5を足してしまっています。" }] },
+  { question: "【マインクラフト】8×8マスの広い畑を作りました。すべてのマスに1つずつ種を植える場合、種は何個必要ですか？", options: [{ text: "64個", isCorrect: true, rationale: "8×8の計算で、全部のマス目が64あることがわかります。" }, { text: "16個", isCorrect: false, rationale: "8と8を足してしまっています。" }, { text: "32個", isCorrect: false, rationale: "8×4などで、外側だけの数を数えてしまった可能性があります。" }, { text: "88個", isCorrect: false, rationale: "数字を並べただけで、計算ができていません。" }] },
+  { question: "【サバイバル】朝の気温は15度でした。お昼には気温が8度上がり、夕方にはそこから5度下がりました。夕方の気温は何度ですか？", options: [{ text: "18度", isCorrect: true, rationale: "15+8=23度になり、そこから5を引くと18度になります。" }, { text: "23度", isCorrect: false, rationale: "お昼の気温で止まってしまっています。夕方の分も計算しましょう。" }, { text: "28度", isCorrect: false, rationale: "最後も足し算をしてしまった可能性があります。" }, { text: "12度", isCorrect: false, rationale: "計算ミス、または引き算を2回してしまった可能性があります。" }] },
+  { question: "【マインクラフト】1つのチェストには27個のアイテムが入ります。今、15個のアイテムが入っています。あと何個アイテムを入れられますか？", options: [{ text: "12個", isCorrect: true, rationale: "27から15を引くと12になります。" }, { text: "15個", isCorrect: false, rationale: "今入っている数と同じですが、空きの数ではありません。" }, { text: "42個", isCorrect: false, rationale: "全部の数と今の数を足してしまっています。" }, { text: "10個", isCorrect: false, rationale: "大まかな計算ですが、正確ではありません。" }] },
+  { question: "【サバイバル】木の枝を使って長さ30cmの箸を作ります。120cmの長い枝が1本あるとき、箸は何膳作れますか？※箸1膳は2本です。", options: [{ text: "2膳", isCorrect: true, rationale: "120÷30=4本。箸1膳は2本必要なので、4÷2=2膳になります。" }, { text: "4膳", isCorrect: false, rationale: "枝から取れる「本数」ですが、聞かれているのは「膳（2本セット）」の数です。" }, { text: "8膳", isCorrect: false, rationale: "計算を逆にかけ算してしまっている可能性があります。" }, { text: "3膳", isCorrect: false, rationale: "計算ミスです。" }] },
+  { question: "【マインクラフト】クモの目を4個、砂糖を2個、キノコを1個持っています。「発酵したクモの目」を1つ作るのに、これらが1個ずつ必要です。最大でいくつ作れますか？", options: [{ text: "1個", isCorrect: true, rationale: "材料が1つずつ必要ですが、キノコが1個しかないので、他が余っていても1個しか作れません。" }, { text: "4個", isCorrect: false, rationale: "クモの目の数と同じですが、キノコと砂糖が足りなくなります。" }, { text: "2個", isCorrect: false, rationale: "砂糖は足りますが、やはりキノコが足りません。" }, { text: "7個", isCorrect: false, rationale: "すべての材料を足してしまっています。" }] },
+  { question: "【サバイバル】1日に水を2リットル飲みます。5リットルの大きなボトルを1本持っているとき、3日間生き延びるには水は足りますか？", options: [{ text: "足りない（1L足りない）", isCorrect: true, rationale: "3日間で必要なのは2×3=6リットルです。5リットルでは1リットル足りません。" }, { text: "足りる（ちょうどいい）", isCorrect: false, rationale: "2×3の計算結果と5を比較すると、足りないことがわかります。" }, { text: "足りる（1L余る）", isCorrect: false, rationale: "これは2日間だけ生き延びる場合の計算です。" }, { text: "足りない（5L足りない）", isCorrect: false, rationale: "ボトル1本分まるごと足りないわけではありません。" }] }
+];
+
+const dataMihaji = [
+  { question: "【マインクラフト】トロッコに乗って1秒間に8ブロック進みます。2分間走り続けると、何ブロック進むことになりますか？（持ち物にはレールが64個あります）", options: [{ text: "960ブロック", isCorrect: true, rationale: "1分は60秒なので2分は120秒です。8×120=960となります。レールの数は計算に関係ありません。" }, { text: "16ブロック", isCorrect: false, rationale: "8×2で計算していますが、時間は「分」なので「秒」に直す必要があります。" }, { text: "512ブロック", isCorrect: false, rationale: "レールの数（64）を計算に使ってしまっている可能性があります。" }, { text: "120ブロック", isCorrect: false, rationale: "秒数だけを答えてしまっています。" }] },
+  { question: "【サバイバル】ジオたちが時速4kmで歩いています。10km先にある救助ポイントまで行くには、何時間何分かかりますか？", options: [{ text: "2時間30分", isCorrect: true, rationale: "10÷4=2.5時間。0.5時間は30分なので、2時間30分になります。" }, { text: "2時間10分", isCorrect: false, rationale: "あまりの2kmをそのまま10分としてしまっています。4kmで1時間（60分）なので、2kmは30分です。" }, { text: "6時間", isCorrect: false, rationale: "10から4を引いてしまっているか、計算ミスです。" }, { text: "40分", isCorrect: false, rationale: "かけ算をして単位を間違えています。" }] },
+  { question: "【マインクラフト】ガストの火の玉が1秒間に10ブロックの速さで飛んできます。45ブロック離れた場所にいるとき、火の玉が届くまで何秒かかりますか？", options: [{ text: "4.5秒", isCorrect: true, rationale: "道のり（45）÷速さ（10）で、4.5秒になります。" }, { text: "4秒", isCorrect: false, rationale: "あまりの分を切り捨ててしまっています。火の玉が届く正確な時間を考えましょう。" }, { text: "5秒", isCorrect: false, rationale: "四捨五入した数字ですが、正確な計算結果ではありません。" }, { text: "450秒", isCorrect: false, rationale: "かけ算をしてしまっています。" }] },
+  { question: "【サバイバル】時速120kmで飛ぶヘリコプターが、300km離れた島へ向かいます。到着まで何時間かかりますか？", options: [{ text: "2.5時間", isCorrect: true, rationale: "300÷120=2.5。つまり2時間と半分（30分）です。" }, { text: "3時間", isCorrect: false, rationale: "少し多く見積もりすぎています。" }, { text: "2時間", isCorrect: false, rationale: "2時間では120×2=240kmしか進めず、島に届きません。" }, { text: "1.5時間", isCorrect: false, rationale: "計算ミスです。" }] },
+  { question: "【マインクラフト】スプリント（全力疾走）で1秒間に5ブロック進みます。30秒間走り続けたあと、お腹が空いて止まってしまいました。全部で何ブロック進みましたか？", options: [{ text: "150ブロック", isCorrect: true, rationale: "速さ（5）×時間（30）で150になります。" }, { text: "35ブロック", isCorrect: false, rationale: "5と30を足してしまっています。" }, { text: "6ブロック", isCorrect: false, rationale: "割り算をしてしまっています。" }, { text: "1500ブロック", isCorrect: false, rationale: "桁を間違えて計算してしまっています。" }] },
+  { question: "【サバイバル】ピピが崖を1分間に3メートル登ります。崖の高さは10メートルです。頂上に着くには、最低でも何分かかりますか？（答えは整数で）", options: [{ text: "4分", isCorrect: true, rationale: "10÷3=3あまり1。3分では9メートルしか登れないので、あと1メートル登るために4分目が必要になります。" }, { text: "3分", isCorrect: false, rationale: "3分では9メートル地点にいて、まだ頂上に着いていません。" }, { text: "13分", isCorrect: false, rationale: "数字を足してしまっています。" }, { text: "3.3分", isCorrect: false, rationale: "計算は正しいですが、問題文の「整数で」という条件に合っていません。" }] },
+  { question: "【マインクラフト】TNTに火をつけてから爆発するまで4秒あります。1秒間に4ブロック進める速さで逃げると、爆発までに何ブロック離れられますか？", options: [{ text: "16ブロック", isCorrect: true, rationale: "速さ（4）×時間（4）で16になります。" }, { text: "8ブロック", isCorrect: false, rationale: "4と4を足してしまっています。" }, { text: "1ブロック", isCorrect: false, rationale: "割り算をしてしまっています。" }, { text: "12ブロック", isCorrect: false, rationale: "計算ミスです。" }] },
+  { question: "【サバイバル】満潮になる前に逃げなければなりません。2分間で50メートル走れる速さで、120メートル先の高台を目指します。何分あればたどり着けますか？", options: [{ text: "4.8分", isCorrect: true, rationale: "1分間に25メートル進むので、120÷25=4.8分になります。" }, { text: "4分", isCorrect: false, rationale: "4分では100メートルしか進めません。" }, { text: "6分", isCorrect: false, rationale: "50×2=100m, 50×3=150mと考えて3倍（6分）にするのは安全ですが、正確な時間は異なります。" }, { text: "2.4分", isCorrect: false, rationale: "計算の途中で2で割るのを忘れているか、間違えています。" }] },
+  { question: "【マインクラフト】橋を作っています。2秒に1ブロックのペースで置けるとき、1分間で最大何ブロックの橋が作れますか？", options: [{ text: "30ブロック", isCorrect: true, rationale: "1分は60秒です。2秒で1個なので、60÷2=30個になります。" }, { text: "60ブロック", isCorrect: false, rationale: "1秒に1個のペースと間違えています。" }, { text: "120ブロック", isCorrect: false, rationale: "かけ算をしてしまっています。" }, { text: "2ブロック", isCorrect: false, rationale: "2秒で1個という条件そのものです。" }] },
+  { question: "【サバイバル】イカダで川を下ります。川の流れに乗ると時速6kmで進めます。15km先の村に着くのは、何時間何分後ですか？", options: [{ text: "2時間30分", isCorrect: true, rationale: "15÷6=2.5。2.5時間は2時間30分です。" }, { text: "2時間15分", isCorrect: false, rationale: "15という数字に惑わされていますが、0.5時間は15分ではありません。" }, { text: "9時間", isCorrect: false, rationale: "引き算をしてしまっています。" }, { text: "3時間", isCorrect: false, rationale: "6×3=18なので、15kmだと3時間はかかりません。" }] },
+  { question: "【マインクラフト】エンダーパールを投げると、1回で20ブロック先にワープできます。6回投げたとき、合計で何ブロック移動したことになりますか？（持ち物にはパールが16個あります）", options: [{ text: "120ブロック", isCorrect: true, rationale: "1回20ブロック×6回で120になります。持ち物の数は関係ありません。" }, { text: "320ブロック", isCorrect: false, rationale: "持ち物の数（16）を計算に使ってしまっています。" }, { text: "26ブロック", isCorrect: false, rationale: "足し算をしてしまっています。" }, { text: "3.3ブロック", isCorrect: false, rationale: "割り算をしてしまっています。" }] },
+  { question: "【サバイバル】偵察用ドローンの速さは1秒間に10メートルです。通信が届く範囲は1km（1000メートル）までです。ドローンを通信範囲の限界まで飛ばすには、何秒かかりますか？", options: [{ text: "100秒", isCorrect: true, rationale: "1000÷10=100になります。" }, { text: "10秒", isCorrect: false, rationale: "桁を間違えて計算しています。" }, { text: "10000秒", isCorrect: false, rationale: "かけ算をしてしまっています。" }, { text: "1秒", isCorrect: false, rationale: "10メートルしか進めません。" }] },
+  { question: "【マインクラフト】トンネルを掘ります。10秒で1ブロック掘れるとき、5分間掘り続けると何ブロックのトンネルになりますか？", options: [{ text: "30ブロック", isCorrect: true, rationale: "5分は300秒。300÷10=30になります。" }, { text: "50ブロック", isCorrect: false, rationale: "10秒に1個を、1分に10個と勘違いしている可能性があります。" }, { text: "300ブロック", isCorrect: false, rationale: "秒数だけを答えてしまっています。" }, { text: "2ブロック", isCorrect: false, rationale: "計算ミスです。" }] },
+  { question: "【サバイバル】泥沼の中を時速2kmで進みます。この沼が5km続いているとき、通り抜けるのに何時間何分かかりますか？", options: [{ text: "2時間30分", isCorrect: true, rationale: "5÷2=2.5。2時間と0.5時間（30分）です。" }, { text: "2時間50分", isCorrect: false, rationale: "あまりの5kmという数字に引っ張られています。" }, { text: "3時間", isCorrect: false, rationale: "少し時間がかかりすぎています。" }, { text: "7時間", isCorrect: false, rationale: "足し算をしてしまっています。" }] },
+  { question: "【マインクラフト】氷の上のボートはとても速く、1秒間に40ブロック進みます。100ブロック先の村まで行くには、何秒かかりますか？", options: [{ text: "2.5秒", isCorrect: true, rationale: "100÷40=2.5です。" }, { text: "2秒", isCorrect: false, rationale: "2秒では80ブロックしか進めず、村に届きません。" }, { text: "4秒", isCorrect: false, rationale: "割り算を逆にしてしまっている可能性があります。" }, { text: "4000秒", isCorrect: false, rationale: "かけ算をしてしまっています。" }] },
+  { question: "【サバイバル】ケイが湖を分速30メートルで泳いで渡ります。湖の幅は100メートルです。向こう岸に着くには何分かかりますか？（答えは整数で切り上げ）", options: [{ text: "4分", isCorrect: true, rationale: "100÷30=3あまり10。3分では届かないので、4分目に入って到着します。" }, { text: "3分", isCorrect: false, rationale: "3分では90メートル地点におり、まだ湖の中です。" }, { text: "30分", isCorrect: false, rationale: "計算ミスです。" }, { text: "10分", isCorrect: false, rationale: "桁を間違えて計算しています。" }] },
+  { question: "【マインクラフト】1秒間に4ブロックの速さで走ります。1000ブロック走るには、何分何秒かかりますか？", options: [{ text: "4分10秒", isCorrect: true, rationale: "1000÷4=250秒。250秒は、240秒（4分）と10秒です。" }, { text: "250分", isCorrect: false, rationale: "秒を分に直すのを忘れています。" }, { text: "4分", isCorrect: false, rationale: "4分（240秒）では960ブロックしか進めません。" }, { text: "10分", isCorrect: false, rationale: "計算ミスです。" }] },
+  { question: "【サバイバル】救助機が時速200kmでこちらに向かっています。現在500km離れた場所にいるとき、あと何時間で到着しますか？", options: [{ text: "2.5時間", isCorrect: true, rationale: "500÷200=2.5です。2時間30分ということになります。" }, { text: "2時間", isCorrect: false, rationale: "これでは400kmしか進めません。" }, { text: "3時間", isCorrect: false, rationale: "これでは600km進んで通り過ぎてしまいます。" }, { text: "5時間", isCorrect: false, rationale: "計算ミス、または速さを100と勘違いしています。" }] },
+  { question: "【マインクラフト】弓矢を撃つと、矢は1秒間に20ブロックの速さで飛びます。50ブロック先の的に当たるまで何秒かかりますか？", options: [{ text: "2.5秒", isCorrect: true, rationale: "50÷20=2.5です。" }, { text: "2秒", isCorrect: false, rationale: "2秒では40ブロックしか進まず、的に届きません。" }, { text: "3秒", isCorrect: false, rationale: "3秒経つ前にはもう当たっています。" }, { text: "1000秒", isCorrect: false, rationale: "かけ算をしてしまっています。" }] },
+  { question: "【サバイバル】ハイキングをしています。時速3kmののんびりした速さで、午前9時から午前11時30分まで歩きました。全部で何km歩きましたか？", options: [{ text: "7.5km", isCorrect: true, rationale: "歩いた時間は2.5時間です。3×2.5=7.5になります。" }, { text: "6km", isCorrect: false, rationale: "2時間分しか計算していません。あとの30分（0.5時間）分も足しましょう。" }, { text: "9km", isCorrect: false, rationale: "3時間歩いたと勘違いしている可能性があります。" }, { text: "1.5km", isCorrect: false, rationale: "30分（0.5時間）分しか計算していません。" }] }
+];
+
+// --- アプリケーションの状態 ---
+let currentQuizData = [];
+let currentQuestionIndex = 0;
+let correctCount = 0;
+let currentUtterance = null; // 音声読み上げの状態管理
+const appDiv = document.getElementById('app');
+
+// ========================================================
+// 音声読み上げ機能 (Web Speech API)
+// ========================================================
+function speakText(text) {
+    if ('speechSynthesis' in window) {
+        // 前の音声が残っていればキャンセルして摩擦をなくす
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ja-JP';
+        utterance.rate = 0.85; // 少しゆっくりにして処理時間を確保
+        utterance.pitch = 1.0;
+        
+        window.speechSynthesis.speak(utterance);
+        currentUtterance = utterance;
+    } else {
+        alert("お使いのブラウザは音声読み上げに対応していません。");
+    }
+}
+
+function stopSpeech() {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+    }
+}
+// ========================================================
+
+// 配列をシャッフルする関数
+function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+// 問題文のフォーマット処理（ノイズ削減と構造化）
+function formatQuestion(rawQuestion, isCenter = true) {
+    let cleanText = rawQuestion.replace(/^【.*?】\s*/, '');
+    
+    let sentences = cleanText.split(/。/).map((s, index, arr) => {
+        if (s.trim() === '') return '';
+        return index !== arr.length - 1 ? s + '。' : s;
+    }).filter(s => s !== '');
+
+    const regex = /(\d+(?:\.\d+)?(?:個|本|リットル|L|メートル|m|分|人|枚|頭|回|膳|スタック|秒|時間|km|度|匹|ブロック|マス|cm|日))|(何(?:個|本|リットル|L|メートル|m|分|人|枚|頭|回|膳|スタック|秒|時間|時間何分|分何秒|km|度|匹|ブロック|マス|cm|日)|いくつ)/g;
+    
+    return sentences.map(s => {
+        let marked = s.replace(regex, '<span class="marker-yellow">$&</span>');
+        const alignClass = isCenter ? 'text-center' : 'text-left';
+        return `<p class="mb-5 last:mb-0 ${alignClass}">${marked}</p>`;
+    }).join('');
+}
+
+// 1. スタート画面の描画
+function renderStartScreen() {
+    stopSpeech(); // 画面遷移時の音声キャンセル
+    
+    appDiv.innerHTML = `
+        <div class="bg-emerald-600 text-white p-6 text-center">
+            <h1 class="text-3xl font-bold tracking-wider">算数クエスト</h1>
+            <p class="text-emerald-100 mt-2">マイクラ ＆ サバイバル</p>
+        </div>
+        <div class="p-8 flex-grow flex flex-col justify-center gap-4 fade-in">
+            <p class="text-center text-gray-600 mb-4 font-bold">遊びたいコースを選んでね！</p>
+            
+            <button onclick="startQuiz('basic')" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 px-6 rounded-xl shadow transition-colors flex justify-between items-center">
+                <span>🟢 基礎サバイバル (20問)</span>
+                <span class="text-amber-200 text-sm">基本の計算</span>
+            </button>
+            
+            <button onclick="startQuiz('critical')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-6 rounded-xl shadow transition-colors flex justify-between items-center">
+                <span>🟡 じっくり思考 (20問)</span>
+                <span class="text-emerald-200 text-sm">ひっかけ注意！</span>
+            </button>
+            
+            <button onclick="startQuiz('mihaji')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl shadow transition-colors flex justify-between items-center">
+                <span>🔵 みはじの試練 (20問)</span>
+                <span class="text-blue-200 text-sm">速さ・時間・距離</span>
+            </button>
+            
+            <button onclick="startQuiz('mix')" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-xl shadow transition-colors flex justify-between items-center mt-4">
+                <span>🎲 ランダムミックス (10問)</span>
+                <span class="text-purple-200 text-sm">ぜんぶ混ぜて挑戦</span>
+            </button>
+        </div>
+    `;
+}
+
+// クイズ開始ロジック
+function startQuiz(type) {
+    stopSpeech();
+    let rawData = [];
+    let limit = 0;
+    
+    if (type === 'basic') rawData = dataBasic;
+    else if (type === 'critical') rawData = dataCritical;
+    else if (type === 'mihaji') rawData = dataMihaji;
+    else if (type === 'mix') {
+        rawData = [...dataBasic, ...dataCritical, ...dataMihaji];
+        limit = 10;
+    }
+    
+    currentQuizData = shuffleArray(rawData).map(q => {
+        return {
+            question: q.question,
+            options: shuffleArray(q.options)
+        };
+    });
+
+    if (limit > 0) {
+        currentQuizData = currentQuizData.slice(0, limit);
+    }
+
+    currentQuestionIndex = 0;
+    correctCount = 0;
+    renderQuestion();
+}
+
+// 2. 質問画面の描画
+function renderQuestion() {
+    const q = currentQuizData[currentQuestionIndex];
+    const progress = Math.round(((currentQuestionIndex) / currentQuizData.length) * 100);
+
+    let optionsHtml = '';
+    q.options.forEach((opt, index) => {
+        const optJson = JSON.stringify(opt).replace(/"/g, '&quot;');
+        optionsHtml += `
+            <button onclick="handleAnswer(${optJson})" class="w-full h-full min-h-[5rem] text-center bg-gray-50 hover:bg-emerald-50 border-2 border-gray-200 hover:border-emerald-500 text-gray-700 font-bold py-3 px-4 rounded-xl transition-all shadow-sm flex items-center justify-center text-sm sm:text-base leading-loose">
+                ${opt.text}
+            </button>
+        `;
+    });
+
+    // 構造化された問題文のHTML生成
+    const questionHtml = formatQuestion(q.question, true);
+    
+    // 音声読み上げ用のプレーンテキスト生成（余計なタグや記号を省く）
+    const speechText = q.question.replace(/^【.*?】\s*/, '');
+    const speechArg = JSON.stringify(speechText).replace(/"/g, '&quot;');
+
+    appDiv.innerHTML = `
+        <div class="bg-gray-100 px-6 py-4 flex justify-between items-center border-b border-gray-200">
+            <span class="text-gray-500 font-bold">第 ${currentQuestionIndex + 1} 問 / 全 ${currentQuizData.length} 問</span>
+            <button onclick="renderStartScreen()" class="text-sm text-gray-400 hover:text-gray-600 font-bold">辞める</button>
+        </div>
+        
+        <div class="w-full bg-gray-200 h-1.5">
+            <div class="bg-emerald-500 h-1.5 transition-all duration-300" style="width: ${progress}%"></div>
+        </div>
+
+        <div class="p-6 md:p-8 flex-grow flex flex-col fade-in h-full">
+            
+            <!-- 音声読み上げボタン -->
+            <div class="flex justify-center mb-6">
+                <button onclick="speakText(${speechArg})" class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-2 px-5 rounded-full flex items-center shadow-sm transition-colors text-sm border border-blue-200">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 12h4l4-4v12l-4-4H5a2 2 0 01-2-2V10a2 2 0 012-2z"></path></svg>
+                    もんだいをよむ
+                </button>
+            </div>
+
+            <div class="flex-grow flex flex-col justify-center mb-8">
+                <div class="text-xl md:text-2xl font-bold text-gray-800 leading-loose w-full">
+                    ${questionHtml}
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 md:gap-4 mt-auto">
+                ${optionsHtml}
+            </div>
+        </div>
+    `;
+}
+
+// 回答処理とフィードバック画面の描画
+function handleAnswer(selectedOption) {
+    stopSpeech(); // 選択時に音声が鳴っていれば止める
+    
+    const isCorrect = selectedOption.isCorrect;
+    const rawQuestion = currentQuizData[currentQuestionIndex].question;
+    const currentQHtml = formatQuestion(rawQuestion, false);
+    
+    // 解説画面用の読み上げテキスト
+    const speechText = rawQuestion.replace(/^【.*?】\s*/, '');
+    const speechArg = JSON.stringify(speechText).replace(/"/g, '&quot;');
+
+    if (isCorrect) {
+        correctCount++;
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#34d399', '#fcd34d', '#60a5fa', '#a78bfa']
+        });
+    }
+
+    const headerClass = isCorrect ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800";
+    const headerText = isCorrect ? "🎉 正解！" : "🤔 おしい！";
+    const buttonClass = isCorrect ? "bg-emerald-600 hover:bg-emerald-700" : "bg-amber-600 hover:bg-amber-700";
+
+    appDiv.innerHTML = `
+        <div class="${headerClass} px-6 py-4 border-b">
+            <h2 class="text-2xl font-bold">${headerText}</h2>
+        </div>
+        
+        <div class="p-6 md:p-8 flex-grow flex flex-col fade-in overflow-y-auto">
+            
+            <div class="bg-white rounded-xl p-4 border border-gray-200 mb-4 shadow-sm relative">
+                <div class="flex justify-between items-center mb-2">
+                    <p class="text-gray-400 text-xs font-bold">問題</p>
+                    <button onclick="speakText(${speechArg})" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded p-1 flex items-center transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 12h4l4-4v12l-4-4H5a2 2 0 01-2-2V10a2 2 0 012-2z"></path></svg>
+                    </button>
+                </div>
+                <div class="text-gray-700 font-bold text-sm leading-loose">
+                    ${currentQHtml}
+                </div>
+            </div>
+
+            <p class="text-gray-500 text-sm mb-2 font-bold">選んだ答え: <span class="text-gray-800 text-base ml-2 bg-gray-100 px-3 py-1 rounded border border-gray-200">${selectedOption.text}</span></p>
+            
+            <div class="bg-gray-50 rounded-xl p-5 md:p-6 border border-gray-200 mb-6 flex-grow">
+                <h3 class="font-bold text-gray-700 mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    解説・考え方
+                </h3>
+                <p class="text-gray-800 leading-loose font-bold">
+                    ${selectedOption.rationale}
+                </p>
+            </div>
+            
+            <button onclick="nextQuestion()" class="w-full ${buttonClass} text-white font-bold py-4 px-6 rounded-xl shadow transition-colors mt-auto">
+                ${currentQuestionIndex + 1 >= currentQuizData.length ? '結果を見る' : '次の問題へ ➔'}
+            </button>
+        </div>
+    `;
+}
+
+// 次の問題、または結果画面へ
+function nextQuestion() {
+    stopSpeech(); // 遷移時の音声キャンセル
+    currentQuestionIndex++;
+    if (currentQuestionIndex >= currentQuizData.length) {
+        renderResultScreen();
+    } else {
+        renderQuestion();
+    }
+}
+
+// 3. 結果画面の描画
+function renderResultScreen() {
+    stopSpeech();
+    const percentage = Math.round((correctCount / currentQuizData.length) * 100);
+    let message = "";
+    
+    if (percentage === 100) {
+        message = "パーフェクト！サバイバルマスターだ！";
+        var duration = 3 * 1000;
+        var end = Date.now() + duration;
+        (function frame() {
+            confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#34d399', '#fcd34d'] });
+            confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#34d399', '#fcd34d'] });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+    }
+    else if (percentage >= 80) message = "すごい！かなり生き残る力がついているね。";
+    else if (percentage >= 50) message = "いい調子！解説を読んでまた挑戦してみよう。";
+    else message = "ナイストライ！ここからどんどん賢くなれるよ。";
+
+    appDiv.innerHTML = `
+        <div class="bg-amber-100 text-amber-900 p-6 text-center border-b border-amber-200">
+            <h1 class="text-3xl font-bold">クエスト完了！</h1>
+        </div>
+        <div class="p-8 flex-grow flex flex-col items-center justify-center fade-in text-center">
+            
+            <div class="w-32 h-32 rounded-full border-8 border-emerald-500 flex items-center justify-center mb-6 shadow-inner">
+                <span class="text-4xl font-bold text-gray-800">${correctCount}<span class="text-xl text-gray-500">/${currentQuizData.length}</span></span>
+            </div>
+            
+            <h2 class="text-xl font-bold text-gray-800 mb-2">${message}</h2>
+            <p class="text-gray-600 mb-8 font-bold">正解率: ${percentage}%</p>
+            
+            <button onclick="renderStartScreen()" class="w-full max-w-sm bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 px-6 rounded-xl shadow transition-colors">
+                タイトルに戻る
+            </button>
+        </div>
+    `;
+}
+
+// アプリの初期化
+renderStartScreen();
+
+</script>
+</body>
+</html>
